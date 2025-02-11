@@ -1,5 +1,6 @@
 import { addFavorite, removeFavorite } from "@/src/store/favoritesSlice";
 import { AppDispatch, RootState } from "@/src/store/store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import {
   Alert,
@@ -11,6 +12,38 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 
+const FAVORITES_STORAGE_KEY = "favoritesList";
+
+const addFavoriteToStorage = async (word: string): Promise<void> => {
+  try {
+    const storedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+    const favoritesArray = storedFavorites ? JSON.parse(storedFavorites) : [];
+    if (!favoritesArray.includes(word)) {
+      favoritesArray.push(word);
+      await AsyncStorage.setItem(
+        FAVORITES_STORAGE_KEY,
+        JSON.stringify(favoritesArray)
+      );
+    }
+  } catch (error) {
+    console.error("Erro ao adicionar favorito no storage:", error);
+  }
+};
+
+const removeFavoriteFromStorage = async (word: string): Promise<void> => {
+  try {
+    const storedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+    let favoritesArray = storedFavorites ? JSON.parse(storedFavorites) : [];
+    favoritesArray = favoritesArray.filter((w: string) => w !== word);
+    await AsyncStorage.setItem(
+      FAVORITES_STORAGE_KEY,
+      JSON.stringify(favoritesArray)
+    );
+  } catch (error) {
+    console.error("Erro ao remover favorito do storage:", error);
+  }
+};
+
 const screenWidth = Dimensions.get("window").width;
 
 interface WordDefinitionModalProps {
@@ -18,6 +51,8 @@ interface WordDefinitionModalProps {
   onClose: () => void;
   wordIndex: number;
   setWordIndex: (index: number) => void;
+  wordsList?: any[];
+  showNavigation?: boolean;
 }
 
 export default function WordDefinitionModal({
@@ -25,8 +60,11 @@ export default function WordDefinitionModal({
   onClose,
   wordIndex,
   setWordIndex,
+  wordsList,
+  showNavigation = true,
 }: WordDefinitionModalProps) {
-  const words = useSelector((state: RootState) => state.wordList.words);
+  const globalWords = useSelector((state: RootState) => state.wordList.words);
+  const words = wordsList || globalWords;
   const favorites = useSelector(
     (state: RootState) => state.favorites.favorites
   );
@@ -34,20 +72,28 @@ export default function WordDefinitionModal({
 
   if (!words || words.length === 0) return null;
   const wordData = words[wordIndex];
-
   if (!wordData || typeof wordData !== "object") return null;
 
-  // Capturar a fonética correta
-  const phoneticText = wordData.phonetics?.find((p) => p.text)?.text || "N/A";
+  let phoneticText = "N/A";
+  if (wordData.phonetics && Array.isArray(wordData.phonetics)) {
+    phoneticText = wordData.phonetics.find((p: any) => p.text)?.text || "N/A";
+  } else if (wordData.phonetic) {
+    phoneticText = wordData.phonetic;
+  }
 
   const isFavorite = favorites.includes(wordData.word);
 
   const handleToggleFavorite = () => {
     if (isFavorite) {
       dispatch(removeFavorite(wordData.word));
+      removeFavoriteFromStorage(wordData.word);
       Alert.alert("Removido", `"${wordData.word}" foi removido dos favoritos.`);
+      if (!showNavigation) {
+        onClose();
+      }
     } else {
       dispatch(addFavorite(wordData.word));
+      addFavoriteToStorage(wordData.word);
       Alert.alert(
         "Favoritado",
         `"${wordData.word}" foi adicionado aos favoritos.`
@@ -76,36 +122,42 @@ export default function WordDefinitionModal({
           </WordBox>
           <Title>Meanings</Title>
           <ScrollView>
-            {wordData.meanings?.map((meaning, index) => (
-              <MeaningText key={index}>
-                {meaning.definitions[0]?.definition ||
-                  "Sem definição disponível"}
-              </MeaningText>
-            ))}
+            {wordData.meanings &&
+              wordData.meanings.map((meaning: any, index: number) => (
+                <MeaningText key={index}>
+                  {meaning.definitions && meaning.definitions[0]?.definition
+                    ? meaning.definitions[0].definition
+                    : "Sem definição disponível"}
+                </MeaningText>
+              ))}
           </ScrollView>
-          <ButtonContainer>
-            <ActionButton onPress={handlePrevious} disabled={wordIndex === 0}>
-              <ButtonText>Voltar</ButtonText>
-            </ActionButton>
-            <ActionButton onPress={handleToggleFavorite}>
-              <ButtonText>
-                {isFavorite ? "Desfazer\nFavorito" : "Favoritar"}
-              </ButtonText>
-            </ActionButton>
-            <ActionButton
-              onPress={handleNext}
-              disabled={wordIndex === words.length - 1}
-            >
-              <ButtonText>Próximo</ButtonText>
-            </ActionButton>
-          </ButtonContainer>
+          <ActionButton onPress={handleToggleFavorite}>
+            <ButtonText>
+              {isFavorite ? "Desfazer\nFavorito" : "Favoritar"}
+            </ButtonText>
+          </ActionButton>
+          {showNavigation && (
+            <ButtonContainer>
+              <NavBackButton
+                onPress={handlePrevious}
+                disabled={wordIndex === 0}
+              >
+                <ButtonText>Voltar</ButtonText>
+              </NavBackButton>
+              <NavButton
+                onPress={handleNext}
+                disabled={wordIndex === words.length - 1}
+              >
+                <ButtonText>Próximo</ButtonText>
+              </NavButton>
+            </ButtonContainer>
+          )}
         </ModalContainer>
       </Overlay>
     </Modal>
   );
 }
 
-// Estilos com Styled Components
 const Overlay = styled.View`
   flex: 1;
   background-color: rgba(0, 0, 0, 0.5);
@@ -162,23 +214,39 @@ const MeaningText = styled.Text`
   margin-top: 10px;
 `;
 
-const ButtonContainer = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  width: 100%;
-  margin-top: 20px;
-`;
-
-const ActionButton = styled(TouchableOpacity)<{ disabled?: boolean }>`
+const ActionButton = styled(TouchableOpacity)`
   padding: 12px 20px;
-  background-color: ${({ disabled }: { disabled?: boolean }) =>
-    disabled ? "gray" : "#3f51b5"};
+  background-color: #3f51b5;
   border-radius: 8px;
   align-items: center;
+  margin-top: 10px;
 `;
 
 const ButtonText = styled.Text`
   color: white;
   font-size: 16px;
   font-weight: bold;
+`;
+
+const ButtonContainer = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  bottom: 20px;
+  position: absolute;
+`;
+
+const NavButton = styled(TouchableOpacity)<{ disabled?: boolean }>`
+  padding: 12px 20px;
+  background-color: ${({ disabled }: { disabled?: boolean }) =>
+    disabled ? "gray" : "#3f51b5"};
+  border-radius: 8px;
+  align-items: center;
+`;
+const NavBackButton = styled(TouchableOpacity)<{ disabled?: boolean }>`
+  padding: 12px 30px;
+  background-color: ${({ disabled }: { disabled?: boolean }) =>
+    disabled ? "gray" : "#3f51b5"};
+  border-radius: 8px;
+  align-items: center;
 `;

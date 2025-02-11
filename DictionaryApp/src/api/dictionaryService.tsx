@@ -7,7 +7,6 @@ export const fetchWordDetails = async (word: string) => {
     const response = await axios.get(`${API_URL}${word}`);
     return response.data;
   } catch (error) {
-    console.error("Erro ao buscar palavra:", error);
     return null;
   }
 };

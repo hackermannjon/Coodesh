@@ -1,3 +1,3 @@
-import WordListScreen from "../src/screens/WordListScreen";
+import FavoriteListScreen from "@/src/screens/FavoriteListScreen";
 
-export default WordListScreen;
+export default FavoriteListScreen;
