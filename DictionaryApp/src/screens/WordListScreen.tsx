@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
-  TouchableOpacity,
-} from "react-native";
+import { ActivityIndicator, Dimensions, TouchableOpacity } from "react-native";
+import Carousel from "react-native-snap-carousel";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 import SearchBar from "../components/SearchBar";
@@ -19,13 +15,11 @@ interface WordData {
 }
 
 const screenWidth = Dimensions.get("window").width;
-const containerWidth = screenWidth * 0.95;
-const itemWidth = containerWidth / 3;
+const itemWidth = screenWidth * 0.3;
 
 export default function WordListScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { words, status } = useSelector((state: RootState) => state.wordList);
-  const [displayWords, setDisplayWords] = useState<WordData[]>([]);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(
     null
   );
@@ -34,17 +28,19 @@ export default function WordListScreen() {
     dispatch(fetchAllWords());
   }, [dispatch]);
 
-  useEffect(() => {
-    if (words.length > 0) {
-      setDisplayWords([...words, ...words]); // Duplica a lista para efeito infinito
-    }
-  }, [words]);
-
-  const loadMoreWords = () => {
-    if (words.length > 0) {
-      setDisplayWords((prev) => [...prev, ...words]); // Continua repetindo a lista
-    }
-  };
+  const renderItem = ({
+    item,
+    index,
+    style,
+  }: {
+    item: WordData;
+    index: number;
+    style?: any;
+  }) => (
+    <WordItem style={style} onPress={() => setSelectedWordIndex(index)}>
+      <WordText>{item.word}</WordText>
+    </WordItem>
+  );
 
   return (
     <Container>
@@ -56,21 +52,13 @@ export default function WordListScreen() {
         {status === "loading" ? (
           <ActivityIndicator size="large" />
         ) : (
-          <FlatList
-            data={displayWords}
-            keyExtractor={(item, index) => `${item.word}-${index}`}
-            renderItem={({ item, index }) => (
-              <WordItem
-                onPress={() => setSelectedWordIndex(index % words.length)}
-                style={{ width: itemWidth }}
-              >
-                <WordText>{item.word}</WordText>
-              </WordItem>
-            )}
-            numColumns={3}
-            columnWrapperStyle={{ justifyContent: "space-between" }}
-            onEndReached={loadMoreWords}
-            onEndReachedThreshold={0.5}
+          <Carousel
+            data={words}
+            renderItem={renderItem}
+            sliderWidth={screenWidth}
+            itemWidth={itemWidth}
+            loop={true}
+            autoplay={false}
           />
         )}
       </WrapperView>
@@ -125,9 +113,4 @@ const WordText = styled.Text`
   color: #1d1d1b;
   font-size: 16px;
   font-weight: bold;
-`;
-
-const EmptyWordItem = styled.View`
-  aspect-ratio: 1;
-  background-color: transparent;
 `;

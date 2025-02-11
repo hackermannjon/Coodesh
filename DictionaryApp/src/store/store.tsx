@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import authReducer from "./authSlice";
 import favoritesReducer from "./favoritesSlice";
 import historyReducer from "./historySlice";
 import wordListReducer from "./wordListSlice";
@@ -8,6 +9,7 @@ export const store = configureStore({
     wordList: wordListReducer,
     favorites: favoritesReducer,
     history: historyReducer,
+    auth: authReducer,
   },
 });
 
