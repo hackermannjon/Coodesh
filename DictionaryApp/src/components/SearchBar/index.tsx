@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { Alert, TouchableOpacity } from "react-native";
 import { useDispatch } from "react-redux";
 import styled from "styled-components/native";
+import WordDefinitionModal from "../WordDefinitionModal";
 
 interface SearchBarProps {
   onWordAdded?: (word: string) => void;
@@ -12,44 +13,56 @@ interface SearchBarProps {
 
 export default function SearchBar({ onWordAdded }: SearchBarProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [directWord, setDirectWord] = useState<any>(null);
   const dispatch = useDispatch<AppDispatch>();
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
-
     const result = await fetchWordDetails(searchTerm.toLowerCase());
-
     if (result && result.length > 0) {
-      const word = result[0].word;
-
-      // Tenta adicionar a palavra (se já existir, retornará false)
-      const added = await addNewWord(word);
-      if (added) {
-        Alert.alert("Sucesso", `"${word}" foi adicionado à sua lista!`);
-      }
-      // Atualiza a lista de palavras no Redux
+      const wordDetail = result[0];
+      await addNewWord(wordDetail.word);
       await dispatch(fetchAllWords());
-      // Informa ao componente pai (WordListScreen) a palavra processada
       if (onWordAdded) {
-        onWordAdded(word);
+        onWordAdded(wordDetail.word);
       }
+      setDirectWord(wordDetail);
+      setModalVisible(true);
       setSearchTerm("");
     } else {
-      Alert.alert("Erro", "Palavra não encontrada!");
+      Alert.alert("Erro", "Palavra não existe na api!");
     }
   };
 
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setDirectWord(null);
+  };
+
   return (
-    <SearchContainer>
-      <SearchInput
-        placeholder="Add/Find a word..."
-        value={searchTerm}
-        onChangeText={setSearchTerm}
-      />
-      <SearchButton onPress={handleSearch}>
-        <ButtonText>OK</ButtonText>
-      </SearchButton>
-    </SearchContainer>
+    <>
+      <SearchContainer>
+        <SearchInput
+          placeholder="Add/Find a word..."
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+        />
+        <SearchButton onPress={handleSearch}>
+          <ButtonText>OK</ButtonText>
+        </SearchButton>
+      </SearchContainer>
+      {directWord && (
+        <WordDefinitionModal
+          visible={modalVisible}
+          onClose={handleCloseModal}
+          wordIndex={0}
+          setWordIndex={() => {}}
+          wordsList={[directWord]}
+          showNavigation={false}
+        />
+      )}
+    </>
   );
 }
 

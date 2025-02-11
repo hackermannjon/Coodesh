@@ -4,8 +4,6 @@ import {
   Dimensions,
   FlatList,
   ListRenderItemInfo,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   TouchableOpacity,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -34,13 +32,6 @@ export default function WordListScreen() {
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(
     null
   );
-
-  // Estado que guarda os itens exibidos
-  const [displayedWords, setDisplayedWords] = useState<WordData[]>([]);
-  // Índice de início para o próximo bloco de 20 itens
-  const [batchIndex, setBatchIndex] = useState<number>(0);
-  // Flag para evitar múltiplos "append" em sequência
-  const [isAppending, setIsAppending] = useState<boolean>(false);
   const flatListRef = useRef<FlatList<WordData>>(null);
 
   useEffect(() => {
@@ -48,44 +39,6 @@ export default function WordListScreen() {
     dispatch(loadFavorites());
     dispatch(loadHistoryFromStorage());
   }, [dispatch]);
-
-  // Inicializa com os primeiros 20 itens quando os dados são carregados
-  useEffect(() => {
-    if (words.length > 0) {
-      const initialBatch = words.slice(0, 20);
-      setDisplayedWords(initialBatch);
-      setBatchIndex(20 % words.length);
-    }
-  }, [words]);
-
-  // Função para fazer o append dos próximos 20 itens (fazendo wrap se necessário)
-  const handleEndReached = () => {
-    if (isAppending || words.length === 0) return;
-    setIsAppending(true);
-
-    const newBatch: WordData[] = [];
-    for (let i = 0; i < 20; i++) {
-      const idx = (batchIndex + i) % words.length;
-      newBatch.push(words[idx]);
-    }
-    setDisplayedWords((prevWords) => [...prevWords, ...newBatch]);
-    setBatchIndex((prevIndex) => (prevIndex + 20) % words.length);
-
-    setTimeout(() => {
-      setIsAppending(false);
-    }, 200);
-  };
-
-  // Utiliza onScroll para detectar que o usuário está próximo do fim (70% do conteúdo)
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    if (
-      contentOffset.y + layoutMeasurement.height >=
-      0.7 * contentSize.height
-    ) {
-      handleEndReached();
-    }
-  };
 
   const renderItem = ({ item, index }: ListRenderItemInfo<WordData>) => (
     <WordItem
@@ -101,7 +54,11 @@ export default function WordListScreen() {
     const indexInWords = words.findIndex(
       (item) => item.word.toLowerCase() === word.toLowerCase()
     );
-    if (indexInWords !== -1) {
+    if (indexInWords !== -1 && flatListRef.current) {
+      flatListRef.current.scrollToIndex({
+        index: indexInWords,
+        animated: true,
+      });
       setSelectedWordIndex(indexInWords);
     }
   };
@@ -118,7 +75,7 @@ export default function WordListScreen() {
         ) : (
           <FlatList
             ref={flatListRef}
-            data={displayedWords}
+            data={words}
             keyExtractor={(item, index) => `${item.word}-${index}`}
             renderItem={renderItem}
             numColumns={numColumns}
@@ -129,17 +86,14 @@ export default function WordListScreen() {
               return { length: itemWidth, offset, index };
             }}
             initialNumToRender={20}
-            maxToRenderPerBatch={20}
+            maxToRenderPerBatch={300}
             windowSize={5}
-            onScroll={handleScroll}
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.5}
             onScrollToIndexFailed={(info) => {
               setTimeout(() => {
                 if (flatListRef.current) {
                   const fallbackIndex = Math.max(
                     0,
-                    Math.min(info.index, displayedWords.length - 1)
+                    Math.min(info.index, words.length - 1)
                   );
                   flatListRef.current.scrollToIndex({
                     index: fallbackIndex,

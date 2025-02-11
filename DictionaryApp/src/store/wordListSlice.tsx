@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { fetchWordDetails } from "../api/dictionaryService";
-import wordslist from "../utils/wordList.json";
 
 const STORAGE_KEY = "userWords";
 
@@ -22,6 +21,31 @@ const loadUserWords = async (): Promise<string[]> => {
   }
 };
 
+// Função utilitária para dividir um array em blocos menores
+const chunkArray = <T,>(array: T[], chunkSize: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize));
+  }
+  return chunks;
+};
+
+// Função para carregar as palavras do dicionário via fetch do GitHub
+const loadDictionaryWords = async (): Promise<string[]> => {
+  try {
+    const response = await fetch(
+      "https://raw.githubusercontent.com/dwyl/english-words/refs/heads/master/words_dictionary.json"
+    );
+    const json = await response.json();
+    // Extraímos as chaves do objeto (cada chave representa uma palavra)
+    const words: string[] = Object.keys(json);
+    return words;
+  } catch (error) {
+    console.error("Erro ao carregar palavras do dicionário:", error);
+    return [];
+  }
+};
+
 // Função para adicionar uma palavra personalizada ao AsyncStorage
 export const addNewWord = async (word: string): Promise<boolean> => {
   try {
@@ -38,27 +62,17 @@ export const addNewWord = async (word: string): Promise<boolean> => {
   }
 };
 
-// Função utilitária para dividir um array em blocos menores
-const chunkArray = <T,>(array: T[], chunkSize: number): T[][] => {
-  const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += chunkSize) {
-    chunks.push(array.slice(i, i + chunkSize));
-  }
-  return chunks;
-};
-
-// Thunk para buscar palavras do JSON e do AsyncStorage, carregando os detalhes via API em blocos menores
+// Thunk para buscar palavras do GitHub e do AsyncStorage, carregando os detalhes via API em blocos menores
 export const fetchAllWords = createAsyncThunk(
   "wordList/fetchAllWords",
   async (_, { rejectWithValue }) => {
     try {
       const userWords = await loadUserWords();
-      const dictionaryWords = Object.keys(wordslist);
-
-      // Combina as palavras do JSON e as palavras do usuário, evitando duplicatas
+      const dictionaryWords = await loadDictionaryWords();
+      // Combina as palavras do dicionário e as palavras do usuário, evitando duplicatas
       const allWords = Array.from(new Set([...dictionaryWords, ...userWords]));
 
-      // Caso necessário, limitar a quantidade de palavras processadas (exemplo: 100)
+      // Caso necessário, limita a quantidade de palavras processadas (exemplo: 100)
       const limitedWords = allWords.slice(0, 100);
 
       // Define o tamanho dos blocos para as chamadas à API (exemplo: 20 palavras por bloco)
