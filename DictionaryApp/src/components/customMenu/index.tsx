@@ -7,7 +7,7 @@ export default function CustomMenu() {
 
   return (
     <MenuContainer>
-      <MenuButton onPress={() => router.push("/word-list")}>
+      <MenuButton onPress={() => router.push("/wordList")}>
         <ButtonText>Word List</ButtonText>
       </MenuButton>
 
