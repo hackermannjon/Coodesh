@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
+import AudioPlayer from "../AudioPlayer";
 
 const FAVORITES_STORAGE_KEY = "favoritesList";
 
@@ -102,6 +103,8 @@ export default function WordDefinitionModal({
     }
   };
 
+  console.log("wordData", wordData);
+
   useEffect(() => {
     if (wordData.word) {
       dispatch(addToHistoryStorage(wordData.word)); // Adiciona ao Redux e AsyncStorage
@@ -126,6 +129,14 @@ export default function WordDefinitionModal({
           <WordBox>
             <WordText>{wordData.word}</WordText>
             <PhoneticText>{phoneticText}</PhoneticText>
+            {wordData.phonetics?.find((p: { audio: string }) => p.audio) && (
+              <AudioPlayer
+                audioUrl={
+                  wordData.phonetics.find((p: { audio: string }) => p.audio)
+                    ?.audio as string
+                }
+              />
+            )}
           </WordBox>
           <Title>Meanings</Title>
           <ScrollView>
