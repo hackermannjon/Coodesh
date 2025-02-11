@@ -61,7 +61,6 @@ Escolhemos o **Expo** para este projeto devido à sua facilidade de configuraç�
 |-- screens/          # Telas (HomeScreen, DetailsScreen)
 |-- store/            # Estado global (Redux Toolkit)
 |-- theme/            # Configuração de tema e estilos globais
-|-- App.tsx           # Componente principal
 ```
 
 ## Challenge by Coodesh
