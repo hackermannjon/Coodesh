@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
+import SearchBar from "../components/SearchBar";
 import { AppDispatch, RootState } from "../store/store";
 import { fetchAllWords } from "../store/wordListSlice";
 
@@ -38,6 +39,9 @@ export default function WordListScreen() {
   return (
     <Container>
       <Title>Word List</Title>
+      <SearchBarContainer>
+        <SearchBar />
+      </SearchBarContainer>
       <WrapperView>
         {status === "loading" ? (
           <ActivityIndicator size="large" />
@@ -79,6 +83,12 @@ const Title = styled.Text`
   position: absolute;
   top: 10px;
   left: 5%;
+`;
+
+const SearchBarContainer = styled.View`
+  width: 100%;
+  margin-top: 5px;
+  left: 30%;
 `;
 
 const WrapperView = styled.View`
