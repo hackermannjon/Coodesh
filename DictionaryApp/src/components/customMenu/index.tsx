@@ -4,7 +4,7 @@ import styled from "styled-components/native";
 
 export default function CustomMenu() {
   const router = useRouter();
-  const pathname = usePathname(); // Obtém a rota atual
+  const pathname = usePathname();
 
   return (
     <MenuContainer>
@@ -32,30 +32,32 @@ export default function CustomMenu() {
   );
 }
 
-// Tipagem correta para Styled Components
 interface ButtonProps {
   isActive: boolean;
 }
 
-// Estilos com Styled Components
 const MenuContainer = styled.View`
   flex-direction: row;
-  justify-content: space-around;
-  background-color: #3f51b5;
+  width: 100%;
+  background-color: #e3e3e3;
   padding: 16px;
   position: absolute;
   top: 0;
-  width: 100%;
 `;
 
 const MenuButton = styled.TouchableOpacity<ButtonProps>`
+  flex: 1;
   padding: 10px;
-  background-color: ${({ isActive }) => (isActive ? "#E3E3E3" : "white")};
-  border: 1px solid ${({ isActive }) => (isActive ? "#1D1D1B" : "transparent")};
+  background-color: ${({ isActive }: ButtonProps) =>
+    isActive ? "#E3E3E3" : "white"};
+  border: 1px solid;
+  border-color: "#1D1D1B";
   border-radius: 8px;
+  margin: 0 1px;
 `;
 
 const ButtonText = styled.Text<ButtonProps>`
-  color: ${({ isActive }) => (isActive ? "#1D1D1B" : "#3F51B5")};
+  color: ${({ isActive }: ButtonProps) => (isActive ? "#1D1D1B" : "#3F51B5")};
   font-size: 16px;
+  text-align: center;
 `;
