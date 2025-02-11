@@ -28,18 +28,33 @@ const numColumns = 3;
 
 export default function WordListScreen() {
   const dispatch = useDispatch<AppDispatch>();
-  const { words, status } = useSelector((state: RootState) => state.wordList);
+  const { words, status, error } = useSelector(
+    (state: RootState) => state.wordList
+  );
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(
     null
   );
+  // Controlamos a página atual e se ainda há palavras a carregar
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const flatListRef = useRef<FlatList<WordData>>(null);
 
   useEffect(() => {
-    dispatch(fetchAllWords());
     dispatch(loadFavorites());
     dispatch(loadHistoryFromStorage());
   }, [dispatch]);
 
+  // Sempre que a "page" muda, disparamos o fetch para os próximos 50 itens
+  useEffect(() => {
+    dispatch(fetchAllWords(page)).then((action: any) => {
+      // Se a página retornou um array vazio, não há mais itens para carregar
+      if (action.payload && action.payload.length === 0) {
+        setHasMore(false);
+      }
+    });
+  }, [dispatch, page]);
+
+  // Renderiza cada item da lista
   const renderItem = ({ item, index }: ListRenderItemInfo<WordData>) => (
     <WordItem
       onPress={() => setSelectedWordIndex(index)}
@@ -49,7 +64,7 @@ export default function WordListScreen() {
     </WordItem>
   );
 
-  // Função chamada a partir do SearchBar, que localiza o índice da palavra adicionada na lista completa
+  // Função para o SearchBar (ao adicionar a palavra, a lista é rolada para o item)
   const handleWordAdded = (word: string) => {
     const indexInWords = words.findIndex(
       (item) => item.word.toLowerCase() === word.toLowerCase()
@@ -63,6 +78,21 @@ export default function WordListScreen() {
     }
   };
 
+  // Quando o usuário chegar ao final da lista, tenta carregar mais itens
+  const handleEndReached = () => {
+    if (status !== "loading" && hasMore) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
+
+  // Footer para indicar que a lista está carregando mais itens
+  const renderFooter = () => {
+    if (status === "loading") {
+      return <ActivityIndicator size="large" style={{ marginVertical: 20 }} />;
+    }
+    return null;
+  };
+
   return (
     <Container>
       <Title>Word List</Title>
@@ -70,8 +100,8 @@ export default function WordListScreen() {
         <SearchBar onWordAdded={handleWordAdded} />
       </SearchBarContainer>
       <WrapperView>
-        {status === "loading" ? (
-          <ActivityIndicator size="large" />
+        {error ? (
+          <ErrorText>{error}</ErrorText>
         ) : (
           <FlatList
             ref={flatListRef}
@@ -86,8 +116,11 @@ export default function WordListScreen() {
               return { length: itemWidth, offset, index };
             }}
             initialNumToRender={20}
-            maxToRenderPerBatch={300}
+            maxToRenderPerBatch={500}
             windowSize={5}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
             onScrollToIndexFailed={(info) => {
               setTimeout(() => {
                 if (flatListRef.current) {
@@ -156,4 +189,10 @@ const WordText = styled.Text`
   color: #1d1d1b;
   font-size: 16px;
   font-weight: bold;
+`;
+
+const ErrorText = styled.Text`
+  color: red;
+  margin: 20px;
+  text-align: center;
 `;

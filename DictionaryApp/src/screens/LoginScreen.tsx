@@ -2,9 +2,10 @@ import { useAuth } from "@/src/hooks/useAuth";
 import { setNoAuth } from "@/src/store/authSlice";
 import { AppDispatch } from "@/src/store/store";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useDispatch } from "react-redux";
+import { fetchAllWords } from "../store/wordListSlice";
 
 export default function LoginScreen() {
   const { login, register } = useAuth();
@@ -16,6 +17,13 @@ export default function LoginScreen() {
   const isValidEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await dispatch(fetchAllWords(0));
+    };
+    fetchData();
+  }, [dispatch]);
 
   const handleLogin = async () => {
     if (!email || !password) {

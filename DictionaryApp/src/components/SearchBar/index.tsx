@@ -1,6 +1,6 @@
 import { fetchWordDetails } from "@/src/api/dictionaryService";
 import { AppDispatch } from "@/src/store/store";
-import { addNewWord, fetchAllWords } from "@/src/store/wordListSlice";
+import { addNewWord } from "@/src/store/wordListSlice";
 import React, { useState } from "react";
 import { Alert, TouchableOpacity } from "react-native";
 import { useDispatch } from "react-redux";
@@ -23,7 +23,6 @@ export default function SearchBar({ onWordAdded }: SearchBarProps) {
     if (result && result.length > 0) {
       const wordDetail = result[0];
       await addNewWord(wordDetail.word);
-      await dispatch(fetchAllWords());
       if (onWordAdded) {
         onWordAdded(wordDetail.word);
       }

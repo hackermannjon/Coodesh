@@ -62,22 +62,32 @@ export const addNewWord = async (word: string): Promise<boolean> => {
   }
 };
 
-// Thunk para buscar palavras do GitHub e do AsyncStorage, carregando os detalhes via API em blocos menores
+// Thunk para buscar palavras do GitHub e do AsyncStorage, carregando os detalhes via API em blocos menores.
+// Agora, este thunk aceita um parâmetro "page" para implementar a paginação. A cada chamada, ele busca
+// um slice de palavras de acordo com o número da página e faz append à lista anterior.
 export const fetchAllWords = createAsyncThunk(
   "wordList/fetchAllWords",
-  async (_, { rejectWithValue }) => {
+  async (page: number, { rejectWithValue }) => {
     try {
       const userWords = await loadUserWords();
       const dictionaryWords = await loadDictionaryWords();
       // Combina as palavras do dicionário e as palavras do usuário, evitando duplicatas
       const allWords = Array.from(new Set([...dictionaryWords, ...userWords]));
 
-      // Caso necessário, limita a quantidade de palavras processadas (exemplo: 100)
-      const limitedWords = allWords.slice(0, 100);
+      // Define o tamanho da página
+      const pageSize = 50;
+      const start = page * pageSize;
+      const end = start + pageSize;
+      const pagedWords = allWords.slice(start, end);
+
+      // Se não houver palavras na página solicitada, retorna um array vazio
+      if (pagedWords.length === 0) {
+        return [];
+      }
 
       // Define o tamanho dos blocos para as chamadas à API (exemplo: 20 palavras por bloco)
       const chunkSize = 20;
-      const wordChunks = chunkArray(limitedWords, chunkSize);
+      const wordChunks = chunkArray(pagedWords, chunkSize);
 
       let completeWords: WordData[] = [];
       // Processa os blocos sequencialmente para evitar sobrecarga
@@ -121,7 +131,8 @@ const wordListSlice = createSlice({
       })
       .addCase(fetchAllWords.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.words = action.payload;
+        // Ao invés de substituir a lista, fazemos append dos novos dados
+        state.words = state.words.concat(action.payload);
       })
       .addCase(fetchAllWords.rejected, (state, action) => {
         state.status = "failed";
