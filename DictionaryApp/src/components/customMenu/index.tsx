@@ -49,7 +49,7 @@ const MenuButton = styled.TouchableOpacity<ButtonProps>`
   flex: 1;
   padding: 10px;
   background-color: ${({ isActive }: ButtonProps) =>
-    isActive ? "#E3E3E3" : "white"};
+    isActive ? "white " : "#E3E3E3"};
   border: 1px solid;
   border-color: "#1D1D1B";
   border-radius: 8px;

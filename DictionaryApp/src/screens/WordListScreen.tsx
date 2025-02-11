@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -8,7 +8,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 import { AppDispatch, RootState } from "../store/store";
-import { fetchWord } from "../store/wordListSlice";
+import { fetchAllWords } from "../store/wordListSlice";
 
 const screenWidth = Dimensions.get("window").width;
 const containerWidth = screenWidth * 0.95;
@@ -17,60 +17,48 @@ const itemWidth = containerWidth / 3;
 export default function WordListScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { words, status } = useSelector((state: RootState) => state.wordList);
+  const [displayWords, setDisplayWords] = useState<string[]>([]);
 
   useEffect(() => {
-    dispatch(fetchWord("example"));
+    dispatch(fetchAllWords()); // Carrega a lista completa no início
   }, []);
 
-  const handleWordPress = (word: string) => {
-    console.log("Palavra selecionada:", word);
-    // Redirecionamento ou outra ação pode ser implementada aqui
-  };
-
-  // Função para formatar os dados, preenchendo com itens vazios
-  const formatData = (data: any[], numColumns: number) => {
-    const numberOfFullRows = Math.floor(data.length / numColumns);
-    let numberOfElementsLastRow = data.length - numberOfFullRows * numColumns;
-    const newData = [...data];
-    if (numberOfElementsLastRow !== 0) {
-      for (let i = numberOfElementsLastRow; i < numColumns; i++) {
-        newData.push({ empty: true, key: `empty-${i}` });
-      }
+  useEffect(() => {
+    if (words.length > 0) {
+      setDisplayWords([...words, ...words]); // Duplica a lista para efeito infinito
     }
-    return newData;
-  };
+  }, [words]);
 
-  const formattedData = formatData(words, 3);
-
-  const renderItem = ({ item }: { item: any }) => {
-    if (item.empty) {
-      return <EmptyWordItem style={{ width: itemWidth }} />;
+  const loadMoreWords = () => {
+    if (words.length > 0) {
+      setDisplayWords((prev) => [...prev, ...words]); // Continua repetindo a lista
     }
-    return (
-      <WordItem
-        onPress={() => handleWordPress(item.word)}
-        style={{ width: itemWidth }}
-      >
-        <WordText>{item.word}</WordText>
-      </WordItem>
-    );
   };
 
   return (
     <Container>
       <Title>Word List</Title>
       <WrapperView>
-        <FlatList
-          data={formattedData}
-          keyExtractor={(_, index) => index.toString()}
-          renderItem={renderItem}
-          numColumns={3}
-          columnWrapperStyle={{ justifyContent: "flex-start" }}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            status === "loading" ? <ActivityIndicator size="large" /> : null
-          }
-        />
+        {status === "loading" ? (
+          <ActivityIndicator size="large" />
+        ) : (
+          <FlatList
+            data={displayWords}
+            keyExtractor={(item, index) => `${item}-${index}`}
+            renderItem={({ item }) => (
+              <WordItem
+                onPress={() => console.log("Selecionado:", item)}
+                style={{ width: itemWidth }}
+              >
+                <WordText>{item}</WordText>
+              </WordItem>
+            )}
+            numColumns={3}
+            columnWrapperStyle={{ justifyContent: "space-between" }}
+            onEndReached={loadMoreWords}
+            onEndReachedThreshold={0.5}
+          />
+        )}
       </WrapperView>
     </Container>
   );

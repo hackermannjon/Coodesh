@@ -1,12 +1,38 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { fetchWordDetails } from "../api/dictionaryService";
+import { COMMON_WORDS } from "../utils/wordList";
 
-export const fetchWord = createAsyncThunk(
-  "wordList/fetchWord",
-  async (word: string, { rejectWithValue }) => {
+const STORAGE_KEY = "customWordList";
+
+// Função para carregar palavras salvas pelo usuário
+const loadStoredWords = async (): Promise<string[]> => {
+  try {
+    const storedWords = await AsyncStorage.getItem(STORAGE_KEY);
+    return storedWords ? JSON.parse(storedWords) : [];
+  } catch (error) {
+    console.error("Erro ao carregar palavras salvas:", error);
+    return [];
+  }
+};
+
+// Função para adicionar novas palavras ao AsyncStorage
+export const addNewWord = async (word: string) => {
+  try {
+    const storedWords = await loadStoredWords();
+    const updatedWords = [...storedWords, word];
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedWords));
+  } catch (error) {
+    console.error("Erro ao adicionar palavra:", error);
+  }
+};
+
+// Fetch inicial para carregar todas as palavras
+export const fetchAllWords = createAsyncThunk(
+  "wordList/fetchAllWords",
+  async (_, { rejectWithValue }) => {
     try {
-      const data = await fetchWordDetails(word);
-      return data;
+      const storedWords = await loadStoredWords();
+      return [...COMMON_WORDS, ...storedWords]; // Retorna todas as palavras
     } catch (error) {
       return rejectWithValue(error);
     }
@@ -16,23 +42,23 @@ export const fetchWord = createAsyncThunk(
 const wordListSlice = createSlice({
   name: "wordList",
   initialState: {
-    words: [] as any[],
-    status: "idle", // idle | loading | succeeded | failed
+    words: [] as string[], // Lista de palavras
+    status: "idle",
     error: null as string | null,
   },
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchWord.pending, (state) => {
+      .addCase(fetchAllWords.pending, (state) => {
         state.status = "loading";
       })
-      .addCase(fetchWord.fulfilled, (state, action) => {
+      .addCase(fetchAllWords.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.words = [...state.words, ...action.payload];
+        state.words = action.payload; // Armazena todas as palavras na store
       })
-      .addCase(fetchWord.rejected, (state, action) => {
+      .addCase(fetchAllWords.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.error.message || "Erro ao buscar palavras";
+        state.error = action.error.message || "Erro ao carregar palavras";
       });
   },
 });
