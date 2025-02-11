@@ -1,4 +1,4 @@
-import CustomMenu from "@/src/components/customMenu";
+import CustomMenu from "@/src/components/CustomMenu";
 import { Stack } from "expo-router";
 import { View } from "react-native";
 import { Provider } from "react-redux";

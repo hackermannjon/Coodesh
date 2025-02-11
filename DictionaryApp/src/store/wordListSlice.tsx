@@ -1,10 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { fetchWordDetails } from "../api/dictionaryService";
 import { COMMON_WORDS } from "../utils/wordList";
 
 const STORAGE_KEY = "customWordList";
 
-// Função para carregar palavras salvas pelo usuário
+export interface WordData {
+  word: string;
+  phonetics?: { text?: string; audio?: string }[];
+  meanings?: { definitions: { definition: string }[] }[];
+}
+
 const loadStoredWords = async (): Promise<string[]> => {
   try {
     const storedWords = await AsyncStorage.getItem(STORAGE_KEY);
@@ -15,7 +21,6 @@ const loadStoredWords = async (): Promise<string[]> => {
   }
 };
 
-// Função para adicionar novas palavras ao AsyncStorage
 export const addNewWord = async (word: string) => {
   try {
     const storedWords = await loadStoredWords();
@@ -26,26 +31,42 @@ export const addNewWord = async (word: string) => {
   }
 };
 
-// Fetch inicial para carregar todas as palavras
 export const fetchAllWords = createAsyncThunk(
   "wordList/fetchAllWords",
   async (_, { rejectWithValue }) => {
     try {
       const storedWords = await loadStoredWords();
-      return [...COMMON_WORDS, ...storedWords]; // Retorna todas as palavras
+      const allWords = [...COMMON_WORDS, ...storedWords];
+
+      const completeWords = await Promise.all(
+        allWords.map(async (word) => {
+          const data = await fetchWordDetails(word);
+          return data ? data[0] : { word, phonetic: "", meanings: [] };
+        })
+      );
+
+      return completeWords;
     } catch (error) {
       return rejectWithValue(error);
     }
   }
 );
 
+interface WordListState {
+  words: WordData[];
+  status: "idle" | "loading" | "succeeded" | "failed";
+  error: string | null;
+}
+
+const initialState: WordListState = {
+  words: [],
+  status: "idle",
+  error: null,
+};
+
 const wordListSlice = createSlice({
   name: "wordList",
-  initialState: {
-    words: [] as string[], // Lista de palavras
-    status: "idle",
-    error: null as string | null,
-  },
+  initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
@@ -54,7 +75,7 @@ const wordListSlice = createSlice({
       })
       .addCase(fetchAllWords.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.words = action.payload; // Armazena todas as palavras na store
+        state.words = action.payload;
       })
       .addCase(fetchAllWords.rejected, (state, action) => {
         state.status = "failed";

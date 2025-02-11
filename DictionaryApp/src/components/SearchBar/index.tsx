@@ -1,6 +1,6 @@
 import { fetchWordDetails } from "@/src/api/dictionaryService";
 import { AppDispatch } from "@/src/store/store";
-import { addNewWord } from "@/src/store/wordListSlice";
+import { addNewWord, fetchAllWords } from "@/src/store/wordListSlice";
 import React, { useState } from "react";
 import { Alert, TouchableOpacity } from "react-native";
 import { useDispatch } from "react-redux";
@@ -21,6 +21,9 @@ export default function SearchBar() {
       // Adiciona ao AsyncStorage e Redux
       await addNewWord(word);
       Alert.alert("Sucesso", `"${word}" foi adicionado à sua lista!`);
+
+      dispatch(fetchAllWords()); // Atualiza a lista de palavras
+
       setSearchTerm(""); // Limpa a barra de pesquisa
     } else {
       Alert.alert("Erro", "Palavra não encontrada!");

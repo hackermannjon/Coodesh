@@ -8,8 +8,15 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 import SearchBar from "../components/SearchBar";
+import WordDefinitionModal from "../components/WordDefinitionModal";
 import { AppDispatch, RootState } from "../store/store";
 import { fetchAllWords } from "../store/wordListSlice";
+
+interface WordData {
+  word: string;
+  phonetic?: string;
+  meanings?: { definitions: { definition: string }[] }[];
+}
 
 const screenWidth = Dimensions.get("window").width;
 const containerWidth = screenWidth * 0.95;
@@ -18,11 +25,14 @@ const itemWidth = containerWidth / 3;
 export default function WordListScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { words, status } = useSelector((state: RootState) => state.wordList);
-  const [displayWords, setDisplayWords] = useState<string[]>([]);
+  const [displayWords, setDisplayWords] = useState<WordData[]>([]);
+  const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
-    dispatch(fetchAllWords()); // Carrega a lista completa no início
-  }, []);
+    dispatch(fetchAllWords());
+  }, [dispatch]);
 
   useEffect(() => {
     if (words.length > 0) {
@@ -48,13 +58,13 @@ export default function WordListScreen() {
         ) : (
           <FlatList
             data={displayWords}
-            keyExtractor={(item, index) => `${item}-${index}`}
-            renderItem={({ item }) => (
+            keyExtractor={(item, index) => `${item.word}-${index}`}
+            renderItem={({ item, index }) => (
               <WordItem
-                onPress={() => console.log("Selecionado:", item)}
+                onPress={() => setSelectedWordIndex(index % words.length)}
                 style={{ width: itemWidth }}
               >
-                <WordText>{item}</WordText>
+                <WordText>{item.word}</WordText>
               </WordItem>
             )}
             numColumns={3}
@@ -64,13 +74,20 @@ export default function WordListScreen() {
           />
         )}
       </WrapperView>
+      {selectedWordIndex !== null && (
+        <WordDefinitionModal
+          visible={selectedWordIndex !== null}
+          onClose={() => setSelectedWordIndex(null)}
+          wordIndex={selectedWordIndex}
+          setWordIndex={setSelectedWordIndex}
+        />
+      )}
     </Container>
   );
 }
 
 const Container = styled.View`
   flex: 1;
-
   margin-top: 75px;
   background-color: white;
   align-items: center;
@@ -88,7 +105,7 @@ const Title = styled.Text`
 const SearchBarContainer = styled.View`
   width: 100%;
   margin-top: 5px;
-  left: 30%;
+  left: 50%;
 `;
 
 const WrapperView = styled.View`
