@@ -6,7 +6,11 @@ import { Alert, TouchableOpacity } from "react-native";
 import { useDispatch } from "react-redux";
 import styled from "styled-components/native";
 
-export default function SearchBar() {
+interface SearchBarProps {
+  onWordAdded?: (word: string) => void;
+}
+
+export default function SearchBar({ onWordAdded }: SearchBarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const dispatch = useDispatch<AppDispatch>();
 
@@ -18,17 +22,18 @@ export default function SearchBar() {
     if (result && result.length > 0) {
       const word = result[0].word;
 
-      // Adiciona ao AsyncStorage e Redux
+      // Tenta adicionar a palavra (se já existir, retornará false)
       const added = await addNewWord(word);
-      if (!added) {
-        Alert.alert("Aviso", `"${word}" já está na sua lista!`);
-        return;
+      if (added) {
+        Alert.alert("Sucesso", `"${word}" foi adicionado à sua lista!`);
       }
-      Alert.alert("Sucesso", `"${word}" foi adicionado à sua lista!`);
-
-      dispatch(fetchAllWords()); // Atualiza a lista de palavras
-
-      setSearchTerm(""); // Limpa a barra de pesquisa
+      // Atualiza a lista de palavras no Redux
+      await dispatch(fetchAllWords());
+      // Informa ao componente pai (WordListScreen) a palavra processada
+      if (onWordAdded) {
+        onWordAdded(word);
+      }
+      setSearchTerm("");
     } else {
       Alert.alert("Erro", "Palavra não encontrada!");
     }
@@ -37,7 +42,7 @@ export default function SearchBar() {
   return (
     <SearchContainer>
       <SearchInput
-        placeholder="Digite uma palavra..."
+        placeholder="Add/Find a word..."
         value={searchTerm}
         onChangeText={setSearchTerm}
       />
@@ -48,7 +53,6 @@ export default function SearchBar() {
   );
 }
 
-// Estilos com Styled Components
 const SearchContainer = styled.View`
   flex-direction: row;
   justify-content: space-between;

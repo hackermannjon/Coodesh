@@ -71,7 +71,6 @@ export default function WordListScreen() {
     setDisplayedWords((prevWords) => [...prevWords, ...newBatch]);
     setBatchIndex((prevIndex) => (prevIndex + 20) % words.length);
 
-    // Libera a flag após um breve intervalo para evitar chamadas consecutivas
     setTimeout(() => {
       setIsAppending(false);
     }, 200);
@@ -97,11 +96,21 @@ export default function WordListScreen() {
     </WordItem>
   );
 
+  // Função chamada a partir do SearchBar, que localiza o índice da palavra adicionada na lista completa
+  const handleWordAdded = (word: string) => {
+    const indexInWords = words.findIndex(
+      (item) => item.word.toLowerCase() === word.toLowerCase()
+    );
+    if (indexInWords !== -1) {
+      setSelectedWordIndex(indexInWords);
+    }
+  };
+
   return (
     <Container>
       <Title>Word List</Title>
       <SearchBarContainer>
-        <SearchBar />
+        <SearchBar onWordAdded={handleWordAdded} />
       </SearchBarContainer>
       <WrapperView>
         {status === "loading" ? (
@@ -122,8 +131,6 @@ export default function WordListScreen() {
             initialNumToRender={20}
             maxToRenderPerBatch={20}
             windowSize={5}
-            // Removido para evitar "buracos" durante a renderização
-            // removeClippedSubviews={true}
             onScroll={handleScroll}
             onEndReached={handleEndReached}
             onEndReachedThreshold={0.5}
