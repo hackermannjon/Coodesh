@@ -24,21 +24,16 @@ Escolhemos o **Expo** para este projeto devido à sua facilidade de configuraç�
 
 ### **Backend e Banco de Dados**
 
-- Firebase (opcional, para favoritos e histórico)
-- AsyncStorage (Cache local para otimizar requisições)
-
-### **Testes**
-
-- Jest
-- React Testing Library (para testes unitários)
+- Firebase (para favoritos e histórico)
+- AsyncStorage (para favoritos e histórico, caso o usuário não queira se autenticar)
 
 ## Como Instalar e Usar
 
 1. Clone o repositório:
 
    ```sh
-   git clone https://github.com/seuusuario/dictionaryapp.git
-   cd dictionaryapp
+   git clone https://github.com/hackermannjon/Coodesh.git
+   cd DictionaryApp
    ```
 
 2. Instale as dependências:
@@ -55,13 +50,17 @@ Escolhemos o **Expo** para este projeto devido à sua facilidade de configuraç�
 ## Estrutura do Projeto
 
 ```
+/app
+| -- _layout          # Provider, renderização do Menu e rotas iniciais
+| -- index            # rota default do expo, não utilizado
+| -- routes           # rotas que importam e renderição screens
+|
 /src
 |-- api/              # Comunicação com a API externa
 |-- components/       # Componentes reutilizáveis
 |-- screens/          # Telas (HomeScreen, DetailsScreen)
 |-- store/            # Estado global (Redux Toolkit)
 |-- theme/            # Configuração de tema e estilos globais
-|-- utils/            # Funções utilitárias (ex: cache)
 |-- App.tsx           # Componente principal
 ```
 
