@@ -21,13 +21,21 @@ const loadStoredWords = async (): Promise<string[]> => {
   }
 };
 
-export const addNewWord = async (word: string) => {
+export const addNewWord = async (word: string): Promise<boolean> => {
   try {
     const storedWords = await loadStoredWords();
+
+    // Se a palavra já existir, retorna false
+    if (storedWords.includes(word)) {
+      return false;
+    }
+
     const updatedWords = [...storedWords, word];
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedWords));
+    return true; // Retorna true se a palavra foi adicionada
   } catch (error) {
     console.error("Erro ao adicionar palavra:", error);
+    return false;
   }
 };
 

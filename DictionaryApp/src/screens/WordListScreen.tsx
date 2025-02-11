@@ -104,8 +104,8 @@ const Title = styled.Text`
 
 const SearchBarContainer = styled.View`
   width: 100%;
-  margin-top: 5px;
-  left: 50%;
+  margin-top: 7px;
+  left: 30%;
 `;
 
 const WrapperView = styled.View`

@@ -37,9 +37,8 @@ export default function WordDefinitionModal({
 
   if (!wordData || typeof wordData !== "object") return null;
 
-  // Corrigir acesso à fonética
-  const phoneticText =
-    wordData.phonetics?.find((p: any) => p.text)?.text || "N/A";
+  // Capturar a fonética correta
+  const phoneticText = wordData.phonetics?.find((p) => p.text)?.text || "N/A";
 
   const isFavorite = favorites.includes(wordData.word);
 
@@ -54,6 +53,14 @@ export default function WordDefinitionModal({
         `"${wordData.word}" foi adicionado aos favoritos.`
       );
     }
+  };
+
+  const handlePrevious = () => {
+    if (wordIndex > 0) setWordIndex(wordIndex - 1);
+  };
+
+  const handleNext = () => {
+    if (wordIndex < words.length - 1) setWordIndex(wordIndex + 1);
   };
 
   return (
@@ -76,6 +83,22 @@ export default function WordDefinitionModal({
               </MeaningText>
             ))}
           </ScrollView>
+          <ButtonContainer>
+            <ActionButton onPress={handlePrevious} disabled={wordIndex === 0}>
+              <ButtonText>Voltar</ButtonText>
+            </ActionButton>
+            <ActionButton onPress={handleToggleFavorite}>
+              <ButtonText>
+                {isFavorite ? "Desfazer\nFavorito" : "Favoritar"}
+              </ButtonText>
+            </ActionButton>
+            <ActionButton
+              onPress={handleNext}
+              disabled={wordIndex === words.length - 1}
+            >
+              <ButtonText>Próximo</ButtonText>
+            </ActionButton>
+          </ButtonContainer>
         </ModalContainer>
       </Overlay>
     </Modal>
@@ -137,4 +160,25 @@ const Title = styled.Text`
 const MeaningText = styled.Text`
   font-size: 16px;
   margin-top: 10px;
+`;
+
+const ButtonContainer = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 20px;
+`;
+
+const ActionButton = styled(TouchableOpacity)<{ disabled?: boolean }>`
+  padding: 12px 20px;
+  background-color: ${({ disabled }: { disabled?: boolean }) =>
+    disabled ? "gray" : "#3f51b5"};
+  border-radius: 8px;
+  align-items: center;
+`;
+
+const ButtonText = styled.Text`
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
 `;

@@ -19,7 +19,11 @@ export default function SearchBar() {
       const word = result[0].word;
 
       // Adiciona ao AsyncStorage e Redux
-      await addNewWord(word);
+      const added = await addNewWord(word);
+      if (!added) {
+        Alert.alert("Aviso", `"${word}" já está na sua lista!`);
+        return;
+      }
       Alert.alert("Sucesso", `"${word}" foi adicionado à sua lista!`);
 
       dispatch(fetchAllWords()); // Atualiza a lista de palavras
