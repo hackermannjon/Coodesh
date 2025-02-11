@@ -1,10 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Dimensions, TouchableOpacity } from "react-native";
-import Carousel from "react-native-snap-carousel";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  ListRenderItemInfo,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  TouchableOpacity,
+} from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 import SearchBar from "../components/SearchBar";
 import WordDefinitionModal from "../components/WordDefinitionModal";
+import { loadFavorites } from "../store/favoritesSlice";
+import { loadHistoryFromStorage } from "../store/historySlice";
 import { AppDispatch, RootState } from "../store/store";
 import { fetchAllWords } from "../store/wordListSlice";
 
@@ -15,7 +24,9 @@ interface WordData {
 }
 
 const screenWidth = Dimensions.get("window").width;
-const itemWidth = screenWidth * 0.3;
+const containerWidth = screenWidth * 0.95;
+const itemWidth = containerWidth / 3;
+const numColumns = 3;
 
 export default function WordListScreen() {
   const dispatch = useDispatch<AppDispatch>();
@@ -24,20 +35,64 @@ export default function WordListScreen() {
     null
   );
 
+  // Estado que guarda os itens exibidos
+  const [displayedWords, setDisplayedWords] = useState<WordData[]>([]);
+  // Índice de início para o próximo bloco de 20 itens
+  const [batchIndex, setBatchIndex] = useState<number>(0);
+  // Flag para evitar múltiplos "append" em sequência
+  const [isAppending, setIsAppending] = useState<boolean>(false);
+  const flatListRef = useRef<FlatList<WordData>>(null);
+
   useEffect(() => {
     dispatch(fetchAllWords());
+    dispatch(loadFavorites());
+    dispatch(loadHistoryFromStorage());
   }, [dispatch]);
 
-  const renderItem = ({
-    item,
-    index,
-    style,
-  }: {
-    item: WordData;
-    index: number;
-    style?: any;
-  }) => (
-    <WordItem style={style} onPress={() => setSelectedWordIndex(index)}>
+  // Inicializa com os primeiros 20 itens quando os dados são carregados
+  useEffect(() => {
+    if (words.length > 0) {
+      const initialBatch = words.slice(0, 20);
+      setDisplayedWords(initialBatch);
+      setBatchIndex(20 % words.length);
+    }
+  }, [words]);
+
+  // Função para fazer o append dos próximos 20 itens (fazendo wrap se necessário)
+  const handleEndReached = () => {
+    if (isAppending || words.length === 0) return;
+    setIsAppending(true);
+
+    const newBatch: WordData[] = [];
+    for (let i = 0; i < 20; i++) {
+      const idx = (batchIndex + i) % words.length;
+      newBatch.push(words[idx]);
+    }
+    setDisplayedWords((prevWords) => [...prevWords, ...newBatch]);
+    setBatchIndex((prevIndex) => (prevIndex + 20) % words.length);
+
+    // Libera a flag após um breve intervalo para evitar chamadas consecutivas
+    setTimeout(() => {
+      setIsAppending(false);
+    }, 200);
+  };
+
+  // Utiliza onScroll para detectar que o usuário está próximo do fim (70% do conteúdo)
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    if (
+      contentOffset.y + layoutMeasurement.height >=
+      0.7 * contentSize.height
+    ) {
+      handleEndReached();
+    }
+  };
+
+  const renderItem = ({ item, index }: ListRenderItemInfo<WordData>) => (
+    <WordItem
+      onPress={() => setSelectedWordIndex(index)}
+      style={{ width: itemWidth }}
+    >
       <WordText>{item.word}</WordText>
     </WordItem>
   );
@@ -52,19 +107,46 @@ export default function WordListScreen() {
         {status === "loading" ? (
           <ActivityIndicator size="large" />
         ) : (
-          <Carousel
-            data={words}
+          <FlatList
+            ref={flatListRef}
+            data={displayedWords}
+            keyExtractor={(item, index) => `${item.word}-${index}`}
             renderItem={renderItem}
-            sliderWidth={screenWidth}
-            itemWidth={itemWidth}
-            loop={true}
-            autoplay={false}
+            numColumns={numColumns}
+            columnWrapperStyle={{ justifyContent: "space-between" }}
+            getItemLayout={(_, index: number) => {
+              const rowIndex = Math.floor(index / numColumns);
+              const offset = rowIndex * itemWidth;
+              return { length: itemWidth, offset, index };
+            }}
+            initialNumToRender={20}
+            maxToRenderPerBatch={20}
+            windowSize={5}
+            // Removido para evitar "buracos" durante a renderização
+            // removeClippedSubviews={true}
+            onScroll={handleScroll}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.5}
+            onScrollToIndexFailed={(info) => {
+              setTimeout(() => {
+                if (flatListRef.current) {
+                  const fallbackIndex = Math.max(
+                    0,
+                    Math.min(info.index, displayedWords.length - 1)
+                  );
+                  flatListRef.current.scrollToIndex({
+                    index: fallbackIndex,
+                    animated: false,
+                  });
+                }
+              }, 500);
+            }}
           />
         )}
       </WrapperView>
       {selectedWordIndex !== null && (
         <WordDefinitionModal
-          visible={selectedWordIndex !== null}
+          visible={true}
           onClose={() => setSelectedWordIndex(null)}
           wordIndex={selectedWordIndex}
           setWordIndex={setSelectedWordIndex}

@@ -3,7 +3,6 @@ import { Dimensions, FlatList, TouchableOpacity } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 import WordDefinitionModal from "../components/WordDefinitionModal";
-import { loadFavorites } from "../store/favoritesSlice";
 import { AppDispatch, RootState } from "../store/store";
 
 const screenWidth = Dimensions.get("window").width;
@@ -21,10 +20,6 @@ export default function FavoriteListScreen() {
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(
     null
   );
-
-  useEffect(() => {
-    dispatch(loadFavorites());
-  }, [dispatch]);
 
   useEffect(() => {
     const favoriteWords = words.filter((word) => favorites.includes(word.word));

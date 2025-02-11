@@ -3,7 +3,6 @@ import { Dimensions, FlatList, TouchableOpacity } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 import WordDefinitionModal from "../components/WordDefinitionModal";
-import { loadHistoryFromStorage } from "../store/historySlice";
 import { AppDispatch, RootState } from "../store/store";
 
 interface WordData {
@@ -25,10 +24,6 @@ export default function HistoryListScreen() {
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(
     null
   );
-
-  useEffect(() => {
-    dispatch(loadHistoryFromStorage());
-  }, [dispatch]);
 
   useEffect(() => {
     // Filtra a lista de palavras para exibir apenas as palavras que estão no histórico

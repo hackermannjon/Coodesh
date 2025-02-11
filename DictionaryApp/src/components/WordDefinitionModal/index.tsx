@@ -1,7 +1,9 @@
-import { addFavorite, removeFavorite } from "@/src/store/favoritesSlice";
+import {
+  addFavoriteAsync,
+  removeFavoriteAsync,
+} from "@/src/store/favoritesSlice";
 import { addToHistoryStorage } from "@/src/store/historySlice";
 import { AppDispatch, RootState } from "@/src/store/store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect } from "react";
 import {
   Alert,
@@ -13,38 +15,6 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 import AudioPlayer from "../AudioPlayer";
-
-const FAVORITES_STORAGE_KEY = "favoritesList";
-
-const addFavoriteToStorage = async (word: string): Promise<void> => {
-  try {
-    const storedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-    const favoritesArray = storedFavorites ? JSON.parse(storedFavorites) : [];
-    if (!favoritesArray.includes(word)) {
-      favoritesArray.push(word);
-      await AsyncStorage.setItem(
-        FAVORITES_STORAGE_KEY,
-        JSON.stringify(favoritesArray)
-      );
-    }
-  } catch (error) {
-    console.error("Erro ao adicionar favorito no storage:", error);
-  }
-};
-
-const removeFavoriteFromStorage = async (word: string): Promise<void> => {
-  try {
-    const storedFavorites = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-    let favoritesArray = storedFavorites ? JSON.parse(storedFavorites) : [];
-    favoritesArray = favoritesArray.filter((w: string) => w !== word);
-    await AsyncStorage.setItem(
-      FAVORITES_STORAGE_KEY,
-      JSON.stringify(favoritesArray)
-    );
-  } catch (error) {
-    console.error("Erro ao remover favorito do storage:", error);
-  }
-};
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -87,23 +57,19 @@ export default function WordDefinitionModal({
 
   const handleToggleFavorite = () => {
     if (isFavorite) {
-      dispatch(removeFavorite(wordData.word));
-      removeFavoriteFromStorage(wordData.word);
+      dispatch(removeFavoriteAsync(wordData.word));
       Alert.alert("Removido", `"${wordData.word}" foi removido dos favoritos.`);
       if (!showNavigation) {
         onClose();
       }
     } else {
-      dispatch(addFavorite(wordData.word));
-      addFavoriteToStorage(wordData.word);
+      dispatch(addFavoriteAsync(wordData.word));
       Alert.alert(
         "Favoritado",
         `"${wordData.word}" foi adicionado aos favoritos.`
       );
     }
   };
-
-  console.log("wordData", wordData);
 
   useEffect(() => {
     if (wordData.word) {
@@ -261,6 +227,7 @@ const NavButton = styled(TouchableOpacity)<{ disabled?: boolean }>`
   border-radius: 8px;
   align-items: center;
 `;
+
 const NavBackButton = styled(TouchableOpacity)<{ disabled?: boolean }>`
   padding: 12px 30px;
   background-color: ${({ disabled }: { disabled?: boolean }) =>
