@@ -1,7 +1,8 @@
 import { addFavorite, removeFavorite } from "@/src/store/favoritesSlice";
+import { addToHistoryStorage } from "@/src/store/historySlice";
 import { AppDispatch, RootState } from "@/src/store/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Alert,
   Dimensions,
@@ -100,6 +101,12 @@ export default function WordDefinitionModal({
       );
     }
   };
+
+  useEffect(() => {
+    if (wordData.word) {
+      dispatch(addToHistoryStorage(wordData.word)); // Adiciona ao Redux e AsyncStorage
+    }
+  }, [wordIndex]);
 
   const handlePrevious = () => {
     if (wordIndex > 0) setWordIndex(wordIndex - 1);
